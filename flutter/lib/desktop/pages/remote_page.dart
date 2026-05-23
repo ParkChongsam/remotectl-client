@@ -22,6 +22,7 @@ import '../../utils/image.dart';
 import '../widgets/remote_toolbar.dart';
 import '../widgets/kb_layout_type_chooser.dart';
 import '../widgets/tabbar_widget.dart';
+import '../widgets/edge_monitor_switch.dart';
 
 import 'package:flutter_hbb/native/custom_cursor.dart'
     if (dart.library.html) 'package:flutter_hbb/web/custom_cursor.dart';
@@ -579,30 +580,33 @@ class _RemotePageState extends State<RemotePage>
         onExit: (evt) {
           if (!isWeb) bind.hostStopSystemKeyPropagate(stopped: true);
         },
-        child: _ViewStyleUpdater(
-          canvasModel: _ffi.canvasModel,
-          inputModel: _ffi.inputModel,
-          child: Builder(builder: (context) {
-            final peerDisplay = CurrentDisplayState.find(widget.id);
-            return Obx(
-              () => _ffi.ffiModel.pi.isSet.isFalse
-                  ? Container(color: Colors.transparent)
-                  : Obx(() {
-                      _ffi.textureModel.updateCurrentDisplay(peerDisplay.value);
-                      return ImagePaint(
-                        id: widget.id,
-                        zoomCursor: _zoomCursor,
-                        cursorOverImage: _cursorOverImage,
-                        keyboardEnabled: _keyboardEnabled,
-                        remoteCursorMoved: _remoteCursorMoved,
-                        listenerBuilder: (child) =>
-                            _buildRawTouchAndPointerRegion(
-                                child, enterView, leaveView),
-                        ffi: _ffi,
-                      );
-                    }),
-            );
-          }),
+        child: EdgeMonitorSwitch(
+          ffi: _ffi,
+          child: _ViewStyleUpdater(
+            canvasModel: _ffi.canvasModel,
+            inputModel: _ffi.inputModel,
+            child: Builder(builder: (context) {
+              final peerDisplay = CurrentDisplayState.find(widget.id);
+              return Obx(
+                () => _ffi.ffiModel.pi.isSet.isFalse
+                    ? Container(color: Colors.transparent)
+                    : Obx(() {
+                        _ffi.textureModel.updateCurrentDisplay(peerDisplay.value);
+                        return ImagePaint(
+                          id: widget.id,
+                          zoomCursor: _zoomCursor,
+                          cursorOverImage: _cursorOverImage,
+                          keyboardEnabled: _keyboardEnabled,
+                          remoteCursorMoved: _remoteCursorMoved,
+                          listenerBuilder: (child) =>
+                              _buildRawTouchAndPointerRegion(
+                                  child, enterView, leaveView),
+                          ffi: _ffi,
+                        );
+                      }),
+              );
+            }),
+          ),
         ),
       )
     ];
