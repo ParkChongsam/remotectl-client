@@ -18,7 +18,8 @@ env:
   VERSION: "1.4.6-remotectl"
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   UPLOAD_ARTIFACT: "true"
-  SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}"
+  # '-2' tells the existing if-conditions to skip code-signing steps (we don't have certs).
+  SIGN_BASE_URL: "-2"
 
 permissions:
   contents: write
@@ -37,8 +38,6 @@ jobs:
       configuration: Release
       platform: x64
       target_version: Windows10
-    strategy:
-      fail-fast: false
 
   build-for-windows-flutter:
     name: ${{ matrix.job.target }}
@@ -259,5 +258,3 @@ jobs:
             ./SignOutput/rustdesk-*.msi
             ./SignOutput/rustdesk-*.exe
 
-  # The fallback for the flutter version, we use Sciter for 32bit Windows.
-  build-for-windows-sciter:
