@@ -1,0 +1,74 @@
+name: remotectl-windows
+
+# 수동 트리거 전용 — 풀 nightly 매트릭스가 아닌 Windows x86_64만 빌드한다.
+# Flutter UI를 포함한 풀 빌드는 1~2시간 + GitHub Actions의 큰 분량을 소비하므로
+# 처음에는 cargo의 release 산출물만 검증 목적으로 만든다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_flutter:
+        description: "Flutter UI도 함께 빌드할지(완전 산출물 필요 시 true)"
+        type: boolean
+        default: false
+
+env:
+  RUST_VERSION: "1.75"
+  FLUTTER_VERSION: "3.24.5"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+jobs:
+  build-rust:
+    name: build remotectl-rust (windows x86_64)
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Rust ${{ env.RUST_VERSION }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Sciter (lightweight UI, avoids Flutter heavy install)
+        shell: bash
+        run: |
+          mkdir -p $HOME/sciter
+          curl -L https://github.com/c-smile/sciter-sdk/raw/master/bin/64/sciter.dll -o $HOME/sciter/sciter.dll
+
+      - name: Cargo build (Sciter UI, no Flutter)
+        shell: bash
+        run: |
+          set -e
+          # NOTE: vcpkg deps (libvpx/libyuv/opus/aom) compile from source — long.
+          # 첫 빌드는 30~60분 예상.
+          cargo build --release --features inline 2>&1 | tail -50
+        continue-on-error: true
+
+      - name: List artifacts
+        if: always()
+        shell: bash
+        run: |
+          ls -la target/release/*.exe 2>/dev/null || echo "no exe yet"
+          ls -la target/release/ | head -20 || true
+
+      - name: Upload binary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotectl-windows-x64
+          path: target/release/*.exe
+          if-no-files-found: warn
+          retention-days: 14
