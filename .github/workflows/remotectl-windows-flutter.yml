@@ -228,6 +228,15 @@ jobs:
           popd
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
+          ls -la ./SignOutput/
+
+      - name: Upload self-extracted executable
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotectl-windows-${{ matrix.job.arch }}-exe
+          path: ./SignOutput/rustdesk-*.exe
+          if-no-files-found: error
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
